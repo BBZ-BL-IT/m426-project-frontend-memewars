@@ -1,7 +1,6 @@
 import './styles/App.css'
-import ReactPlate from './views/ReactPlate';
-import SocketView from './views/SocketView';
-import { Routes, Route } from 'react-router-dom'
+import HomeView from "./views/HomeView";
+
 
 function App() {
 
