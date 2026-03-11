@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/Styles.css";
+import "../styles/Styles.css"; // Stelle sicher, dass hier das neue Countdown-CSS landet
 import { socket } from "../socket/socket";
 
 interface Player {
@@ -18,32 +18,39 @@ interface LobbyState {
 export default function LobbyView() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [host, setHost] = useState<string>("");
-  const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Sicherheit: Wenn der Socket nicht verbunden ist (z.B. nach Refresh), 
-    // zurück zum Start, um Inkonsistenzen zu vermeiden.
+    // Sicherheit: Falls kein Socket verbunden (z.B. Refresh), zurück zum Start
     if (!socket.connected) {
       navigate("/");
       return;
     }
 
-    // Initialen Status anfordern (optional, falls nicht bereits gesendet)
-    socket.emit("getLobbyUpdate");
-
+    // Update der Lobby-Daten (Spielerliste, Host-Wechsel)
     socket.on("lobbyUpdate", (lobby: LobbyState) => {
       setPlayers(lobby.players);
       setHost(lobby.host);
     });
 
-    socket.on("gameStarted", () => {
-      setGameStarted(true);
-      // Kurze Verzögerung für den visuellen Effekt ("Spiel startet...")
-      setTimeout(() => {
-        navigate("/game"); // Leitet alle Spieler zur GameView weiter
-      }, 2000);
+    // Countdown-Event vom Server empfangen
+    socket.on("startCountdown", (seconds: number) => {
+      setCountdown(seconds);
+
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev !== null && prev > 1) {
+            return prev - 1;
+          } else {
+            clearInterval(interval);
+            // Nach Ablauf des Countdowns zur GameView wechseln
+            navigate("/game");
+            return null;
+          }
+        });
+      }, 1000);
     });
 
     socket.on("error", (msg: string) => {
@@ -52,13 +59,14 @@ export default function LobbyView() {
 
     return () => {
       socket.off("lobbyUpdate");
-      socket.off("gameStarted");
+      socket.off("startCountdown");
       socket.off("error");
     };
   }, [navigate]);
 
+  // Statistiken berechnen
   const readyCount = players.filter((p) => p.ready).length;
-  // Bedingung: Mindestens 2 Spieler UND alle bereit
+  // Bedingung: Mindestens 2 Spieler & alle bereit
   const allReady = players.length >= 2 && readyCount === players.length;
   const progress = players.length ? (readyCount / players.length) * 100 : 0;
 
@@ -75,26 +83,23 @@ export default function LobbyView() {
     socket.emit("startGame");
   };
 
-  // Hilfsvariable für das Button-Styling
-  const startBtnClass = [
-    "start-btn",
-    allReady ? "active" : "inactive",
-    pulse ? "pulse" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   const isHost = socket.id === host;
+
+  // CSS Klasse für den Start-Button
+  const startBtnClass = `start-btn ${allReady ? "active" : "inactive"} ${pulse ? "pulse" : ""}`;
 
   return (
     <div className="lobby-wrapper">
       <div className="bg-grid" />
       <div className="bg-glow" />
 
-      {/* Visuelles Feedback beim Start */}
-      <div className={`toast ${gameStarted ? "visible" : ""}`}>
-        🎮 Spiel startet…
-      </div>
+      {/* ─── COUNTDOWN OVERLAY ─────────────────────── */}
+      {countdown !== null && (
+        <div className="countdown-overlay">
+          <div className="countdown-number">{countdown}</div>
+          <div className="countdown-text">BEREIT MACHEN...</div>
+        </div>
+      )}
 
       <div className="lobby-card">
         <div className="lobby-header">
@@ -119,45 +124,53 @@ export default function LobbyView() {
 
         <div className="players-row">
           {players.map((player) => {
-            const state = player.ready ? "ready" : "waiting";
             const isMe = player.id === socket.id;
+            const isPlayerHost = player.id === host;
 
             return (
               <div key={player.id} className="player">
-                <div className={`player-avatar ${state}`}>
+                <div className={`player-avatar ${player.ready ? "ready" : "waiting"}`}>
                   {player.name[0]?.toUpperCase()}
                 </div>
 
-                <span className={`player-name ${state}`}>
-                  {player.name} {isMe ? "(Du)" : ""} {player.id === host ? "👑" : ""}
+                <span className={`player-name ${player.ready ? "ready" : "waiting"}`}>
+                  {player.name} {isMe && "(Du)"} {isPlayerHost && "👑"}
                 </span>
 
-                <div className={`player-badge ${state}`}>
+                <div className={`player-badge ${player.ready ? "ready" : "waiting"}`}>
                   {player.ready ? "BEREIT" : "WARTET"}
                 </div>
               </div>
             );
           })}
+        </div>
 
-          <div className="start-btn-wrap" style={{ marginTop: '2rem' }}>
-            <button className="ready-btn" onClick={toggleReady}>
-              {players.find(p => p.id === socket.id)?.ready ? "Nicht bereit" : "Bereit werden"}
+        <div className="start-btn-wrap" style={{ marginTop: "30px" }}>
+          <button 
+            className={`ready-btn ${players.find(p => p.id === socket.id)?.ready ? 'is-ready' : ''}`} 
+            onClick={toggleReady}
+            disabled={countdown !== null} // Deaktivieren, wenn Countdown läuft
+          >
+            {players.find(p => p.id === socket.id)?.ready ? "Nicht bereit" : "Bereit werden"}
+          </button>
+
+          {isHost && (
+            <button 
+              className={startBtnClass} 
+              onClick={handleStartGame}
+              disabled={countdown !== null}
+            >
+              Spiel starten
             </button>
+          )}
 
-            {isHost && (
-              <button className={startBtnClass} onClick={handleStartGame}>
-                Spiel starten
-              </button>
-            )}
-
-            {!allReady && isHost && (
-              <div className="start-hint">
-                {players.length < 2 
-                  ? "Warte auf weitere Mitspieler..." 
-                  : "Alle müssen bereit sein"}
-              </div>
-            )}
-          </div>
+          {!allReady && isHost && (
+            <div className="start-hint">
+              {players.length < 2 
+                ? "Warte auf weitere Mitspieler..." 
+                : "Alle müssen bereit sein"}
+            </div>
+          )}
         </div>
       </div>
     </div>
