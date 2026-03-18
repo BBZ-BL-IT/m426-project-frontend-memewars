@@ -16,7 +16,7 @@ interface PlayerEntry {
   rank: number;
 }
 
-export default function MemesRangliste() {
+export default function MemesLeaderboard() {
   const [memes, setMemes] = useState<MemeEntry[]>([]);
   const [players, setPlayers] = useState<PlayerEntry[]>([]);
   const [loading, setLoading] = useState(true);

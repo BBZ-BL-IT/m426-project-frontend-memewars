@@ -52,7 +52,7 @@ export default function MemeRating() {
 
     socket.on('ranglisteData', (data) => {
       sessionStorage.setItem('ranglisteData', JSON.stringify(data));
-      setTimeout(() => navigate('/rangliste'), 0);
+      setTimeout(() => navigate('/leaderboard'), 0);
     });
 
     return () => {
