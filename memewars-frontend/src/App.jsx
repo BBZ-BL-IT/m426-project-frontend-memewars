@@ -4,7 +4,7 @@ import HomeView from "./views/HomeView";
 import ReactPlate from "./views/Reactplate";
 import SocketView from "./views/SocketView";
 import LobbyView from './views/LobbyView';
-import GameView from './views/GameView'; // <--- DIESE ZEILE HAT GEFEHLT!
+import GameView from './views/GameView';
 
 
 function App() {
