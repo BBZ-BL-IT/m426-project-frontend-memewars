@@ -6,6 +6,7 @@ import SocketView from "./views/SocketView";
 import LobbyView from './views/LobbyView';
 import GameView from './views/GameView'; // <--- DIESE ZEILE HAT GEFEHLT!
 import MemeRating from './views/MemeRating';
+import MemesRangliste from './views/MemesRangliste';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/socket" element={<SocketView />} />
         <Route path="/game" element={<GameView />}/>
         <Route path="/rating" element={<MemeRating />}/>
+        <Route path="/rangliste" element={<MemesRangliste />}/>
       </Routes>
     </>
   );
