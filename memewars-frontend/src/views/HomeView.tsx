@@ -1,34 +1,30 @@
 import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Wichtig für den Seitenwechsel
+import { useNavigate } from "react-router-dom";
 import "../styles/HomeView.css";
 import { socket } from "../socket/socket";
 
 type Lobby = {
   id: string;
+  lobbyName: string;
   players: number;
   maxPlayers: number;
+  isStarted: boolean;
 };
 
-type HomeViewProps = {
-  onJoinLobby?: (playerName: string) => void;
-  onCreateLobby?: (playerName: string) => void;
-};
-
-export default function HomeView({ onJoinLobby, onCreateLobby }: HomeViewProps) {
+export default function HomeView() {
   const [name, setName] = useState("");
+  const [lobbyName, setLobbyName] = useState("");
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
-  const navigate = useNavigate(); // Hook initialisieren
+  const navigate = useNavigate();
 
   const trimmedName = useMemo(() => name.trim(), [name]);
   const canContinue = trimmedName.length > 0;
 
-  // ─── Socket Setup ─────────────────────────────────
-
   useEffect(() => {
     socket.emit("getLobbies");
 
-    socket.on("lobbyList", (lobbies: Lobby[]) => {
-      setLobbies(lobbies);
+    socket.on("lobbyList", (data: Lobby[]) => {
+      setLobbies(data);
     });
 
     return () => {
@@ -36,51 +32,24 @@ export default function HomeView({ onJoinLobby, onCreateLobby }: HomeViewProps) 
     };
   }, []);
 
-  // ─── Actions ──────────────────────────────────────
-
-  function handleJoin() {
-    if (!canContinue) return;
-    
-    // Falls Lobbys existieren, trete der ersten bei
-    if (lobbies.length > 0) {
-      joinLobby(lobbies[0].id);
-    } else {
-      alert("Keine offenen Lobbys gefunden. Erstelle stattdessen eine!");
-    }
-  }
-
   function handleCreate() {
     if (!canContinue) return;
-
     localStorage.setItem("playerName", trimmedName);
 
-    // Backend erwartet { name, maxPlayers }
     socket.emit("createLobby", {
       name: trimmedName,
-      maxPlayers: 4,
+      lobbyName: lobbyName.trim() || `${trimmedName}'s Lobby`
     });
 
-    onCreateLobby?.(trimmedName);
-    navigate("/lobby"); // Navigiere zur Lobby-Ansicht
+    navigate("/lobby");
   }
 
   function joinLobby(lobbyId: string) {
     if (!canContinue) return;
-
     localStorage.setItem("playerName", trimmedName);
-
-    // Backend erwartet jetzt { lobbyId, name }
     socket.emit("joinLobby", { lobbyId, name: trimmedName });
-
-    onJoinLobby?.(trimmedName);
-    navigate("/lobby"); // Navigiere zur Lobby-Ansicht
+    navigate("/lobby");
   }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") handleJoin();
-  }
-
-  // ─── UI ───────────────────────────────────────────
 
   return (
     <div className="home-wrapper">
@@ -89,62 +58,59 @@ export default function HomeView({ onJoinLobby, onCreateLobby }: HomeViewProps) 
 
       <div className="home-frame">
         <div className="home-center">
-
           <h1 className="home-title">Welcome to Memewars</h1>
 
           <input
             className="home-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter your name ......"
+            placeholder="Your name..."
           />
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button
-              className="home-btn home-btn-primary"
-              onClick={handleJoin}
-              disabled={!canContinue}
-            >
-              Quick Join
-            </button>
+          <input
+            className="home-input"
+            value={lobbyName}
+            onChange={(e) => setLobbyName(e.target.value)}
+            placeholder="Lobby name..."
+            style={{ marginTop: "10px", fontSize: "0.9rem", opacity: 0.8 }}
+          />
 
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
             <button
               className="home-btn home-btn-secondary"
               onClick={handleCreate}
               disabled={!canContinue}
+              style={{ width: '100%' }}
             >
               Create Lobby
             </button>
           </div>
 
-          {/* ─── Lobby List ───────────────────────── */}
-
           <div className="lobby-list">
             <h3 style={{ color: "white", marginBottom: "10px" }}>Active Lobbies</h3>
-            {lobbies.length === 0 && (
-              <div className="lobby-empty">
-                No open lobbies
-              </div>
-            )}
+            {lobbies.length === 0 && <div className="lobby-empty">No open lobbies</div>}
 
             {lobbies.map((lobby) => (
               <div key={lobby.id} className="lobby-item">
                 <span className="lobby-info">
-                  Lobby {lobby.id.slice(0, 6)} ({lobby.players}/{lobby.maxPlayers})
+                  <strong>{lobby.lobbyName}</strong>
+                  <br />
+                  <small style={{ opacity: 0.7 }}>
+                    ({lobby.players}/{lobby.maxPlayers} Spieler)
+                    {lobby.isStarted && " - IN GAME"}
+                  </small>
                 </span>
 
                 <button
                   className="home-btn"
                   onClick={() => joinLobby(lobby.id)}
-                  disabled={!canContinue}
+                  disabled={!canContinue || lobby.isStarted || lobby.players >= lobby.maxPlayers}
                 >
-                  Join
+                  {lobby.isStarted ? "Laufend" : "Join"}
                 </button>
               </div>
             ))}
           </div>
-
         </div>
       </div>
     </div>
