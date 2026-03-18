@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/MemesRangliste.css';
-import { socket } from '../socket/socket';
 
 interface MemeEntry {
   id: string;
   url: string;
   uploaderName: string;
-  ratings: number[];        // alle eingegangenen Einzelbewertungen
+  ratings: number[];
   averageRating: number;
 }
 
@@ -23,79 +22,16 @@ export default function MemesRangliste() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ── Variante A: Backend schickt fertiges Ergebnis ──────────────
-    // Erwartet: { memes: MemeEntry[], players: PlayerEntry[] }
-    socket.on('ranglisteData', (data: { memes: MemeEntry[]; players: PlayerEntry[] }) => {
-      const sorted = [...data.memes].sort((a, b) => b.averageRating - a.averageRating);
-      setMemes(sorted);
-      setPlayers([...data.players].sort((a, b) => b.score - a.score));
+    // Daten aus sessionStorage — wurden von MemeRating gespeichert
+    const stored = sessionStorage.getItem('ranglisteData');
+    if (stored) {
+      const data = JSON.parse(stored);
+      setMemes([...data.memes].sort((a: MemeEntry, b: MemeEntry) => b.averageRating - a.averageRating));
+      setPlayers([...data.players].sort((a: PlayerEntry, b: PlayerEntry) => b.score - a.score));
       setLoading(false);
-    });
-
-    // ── Variante B: Neues Meme wird hinzugefügt ────────────────────
-    // Erwartet: { id, url, uploaderName }
-    socket.on('newMeme', (meme: Omit<MemeEntry, 'ratings' | 'averageRating'>) => {
-      setMemes((prev) => {
-        if (prev.find((m) => m.id === meme.id)) return prev;
-        return [...prev, { ...meme, ratings: [], averageRating: 0 }];
-      });
-      setLoading(false);
-    });
-
-    // ── Variante C: Einzelne Bewertung kommt rein ──────────────────
-    // Erwartet: { memeId, rating, playerName, playerScore }
-    socket.on('ratingSubmitted', (data: {
-      memeId: string;
-      rating: number;
-      playerName?: string;
-      playerScore?: number;
-    }) => {
-      // Meme-Ratings aktualisieren
-      setMemes((prev) =>
-        prev.map((meme) => {
-          if (meme.id !== data.memeId) return meme;
-          const newRatings = [...meme.ratings, data.rating];
-          const avg = newRatings.reduce((s, r) => s + r, 0) / newRatings.length;
-          return { ...meme, ratings: newRatings, averageRating: avg };
-        }).sort((a, b) => b.averageRating - a.averageRating)
-      );
-
-      // Spieler-Score aktualisieren falls mitgeliefert
-      if (data.playerName !== undefined && data.playerScore !== undefined) {
-        setPlayers((prev) => {
-          const exists = prev.find((p) => p.name === data.playerName);
-          let updated: PlayerEntry[];
-          if (exists) {
-            updated = prev.map((p) =>
-              p.name === data.playerName
-                ? { ...p, score: data.playerScore! }
-                : p
-            );
-          } else {
-            updated = [
-              ...prev,
-              { id: data.playerName!, name: data.playerName!, score: data.playerScore!, rank: 0 },
-            ];
-          }
-          // Ränge neu berechnen
-          return updated
-            .sort((a, b) => b.score - a.score)
-            .map((p, i) => ({ ...p, rank: i + 1 }));
-        });
-      }
-    });
-
-    // Rangliste beim Mounten anfordern
-    socket.emit('getRangliste');
-
-    return () => {
-      socket.off('ranglisteData');
-      socket.off('newMeme');
-      socket.off('ratingSubmitted');
-    };
+    }
   }, []);
 
-  // Ränge der Memes berechnen (index nach sort = rang)
   const rankIcon = (rank: number) => {
     if (rank === 1) return '🥇';
     if (rank === 2) return '🥈';
@@ -117,7 +53,6 @@ export default function MemesRangliste() {
 
       <div className="rl-card">
 
-        {/* ─── Header ─────────────────────────────── */}
         <div className="rl-header">
           <div className="rl-eyebrow">● ERGEBNIS</div>
           <h1 className="rl-title">Meme <span>Rangliste</span></h1>
@@ -125,7 +60,6 @@ export default function MemesRangliste() {
 
         <div className="rl-divider" />
 
-        {/* ─── Loading ────────────────────────────── */}
         {loading && (
           <div className="rl-loading">
             <div className="rl-loading-dot" />
@@ -135,7 +69,6 @@ export default function MemesRangliste() {
           </div>
         )}
 
-        {/* ─── Body ───────────────────────────────── */}
         {!loading && (
           <div className="rl-body">
 
@@ -167,7 +100,7 @@ export default function MemesRangliste() {
               </div>
             </div>
 
-            {/* RIGHT: Player Rangliste */}
+            {/* RIGHT: Spieler Rangliste */}
             <div className="rl-players-col">
               <div className="rl-col-label">SPIELER RANGLISTE</div>
               <div className="rl-players-list">
