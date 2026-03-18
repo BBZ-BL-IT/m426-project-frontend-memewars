@@ -1,34 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import '../styles/MemeRating.css';
 import { socket } from '../socket/socket';
 
-interface MemeRatingProps {
-  memeUrl?: string;
-  onSubmit?: (rating: number) => void;
+interface CurrentMeme {
+  id: string;
+  url: string;
+  uploaderName: string;
+  timeLimit?: number;   // optionale Timer-Länge vom Backend, default 30s
 }
 
-export default function MemeRating({ memeUrl, onSubmit }: MemeRatingProps) {
+export default function MemeRating() {
+  const [currentMeme, setCurrentMeme] = useState<CurrentMeme | null>(null);
   const [rating, setRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [waiting, setWaiting] = useState(true); // wartet auf nächstes Meme
 
-  // Timer countdown
+  // ── Socket: Meme empfangen ────────────────────────────
   useEffect(() => {
-    if (submitted) return;
+    // Backend schickt: { id, url, uploaderName, timeLimit? }
+    socket.on('currentMeme', (meme: CurrentMeme) => {
+      setCurrentMeme(meme);
+      setRating(5);
+      setSubmitted(false);
+      setTimeLeft(meme.timeLimit ?? 30);
+      setWaiting(false);
+    });
+
+    // Alle haben bewertet → warte auf nächstes Meme
+    socket.on('waitingForNextMeme', () => {
+      setWaiting(true);
+    });
+
+    return () => {
+      socket.off('currentMeme');
+      socket.off('waitingForNextMeme');
+    };
+  }, []);
+
+  // ── Timer ─────────────────────────────────────────────
+  useEffect(() => {
+    if (waiting || submitted || !currentMeme) return;
     if (timeLeft <= 0) {
       handleSubmit();
       return;
     }
     const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, waiting, currentMeme]);
 
+  // ── Submit ────────────────────────────────────────────
   const handleSubmit = () => {
-    if (submitted) return;
+    if (submitted || !currentMeme) return;
     setSubmitted(true);
-    socket.emit('submitRating', { rating });
-    onSubmit?.(rating);
+    // memeId mitschicken damit Backend weiss welches Meme bewertet wurde
+    socket.emit('submitRating', { memeId: currentMeme.id, rating });
   };
 
   const ratingLabel = () => {
@@ -40,8 +66,28 @@ export default function MemeRating({ memeUrl, onSubmit }: MemeRatingProps) {
   };
 
   const label = ratingLabel();
-  const timerProgress = (timeLeft / 30) * 100;
+  const timerProgress = currentMeme ? (timeLeft / (currentMeme.timeLimit ?? 30)) * 100 : 100;
 
+  // ── Warte-Screen ──────────────────────────────────────
+  if (waiting || !currentMeme) {
+    return (
+      <div className="rating-wrapper">
+        <div className="bg-grid" />
+        <div className="bg-glow" />
+        <div className="rating-card rating-card--waiting">
+          <div className="rating-eyebrow">● BEREIT</div>
+          <h1 className="rating-title">Warte auf<br /><span>Meme...</span></h1>
+          <div className="rating-waiting-dots">
+            <div className="rating-dot" />
+            <div className="rating-dot" />
+            <div className="rating-dot" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Bewertungs-Screen ─────────────────────────────────
   return (
     <div className="rating-wrapper">
       <div className="bg-grid" />
@@ -55,9 +101,10 @@ export default function MemeRating({ memeUrl, onSubmit }: MemeRatingProps) {
           <h1 className="rating-title">
             Rate this <span>Meme</span>
           </h1>
+          <div className="rating-uploader">von {currentMeme.uploaderName}</div>
         </div>
 
-        {/* Timer Bar */}
+        {/* Timer */}
         <div className="timer-row">
           <span className="timer-label">TIME LEFT</span>
           <span className="timer-count" style={{ color: timeLeft <= 5 ? '#ef4444' : '#6366f1' }}>
@@ -78,11 +125,7 @@ export default function MemeRating({ memeUrl, onSubmit }: MemeRatingProps) {
 
         {/* Meme Image */}
         <div className="meme-frame">
-          <img
-            src={memeUrl ?? 'https://api.dicebear.com/7.x/bottts/svg?seed=memewars'}
-            alt="Meme to rate"
-            className="meme-img"
-          />
+          <img src={currentMeme.url} alt="Meme to rate" className="meme-img" />
         </div>
 
         {/* Slider */}
@@ -107,21 +150,24 @@ export default function MemeRating({ memeUrl, onSubmit }: MemeRatingProps) {
 
           <div className="slider-numbers">
             {Array.from({ length: 10 }, (_, i) => (
-              <span key={i} className={`tick-num ${i + 1 === rating ? 'current' : ''}`}
-                style={{ color: i + 1 === rating ? label.color : undefined }}>
+              <span
+                key={i}
+                className={`tick-num ${i + 1 === rating ? 'current' : ''}`}
+                style={{ color: i + 1 === rating ? label.color : undefined }}
+              >
                 {i + 1}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           className={`rating-submit-btn ${submitted ? 'submitted' : ''}`}
           onClick={handleSubmit}
           disabled={submitted}
         >
-          {submitted ? '✓ BEWERTET' : 'BEWERTUNG ABGEBEN'}
+          {submitted ? '✓ BEWERTET — WARTE AUF ANDERE' : 'BEWERTUNG ABGEBEN'}
         </button>
 
       </div>
