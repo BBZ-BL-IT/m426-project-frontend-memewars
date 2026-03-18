@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Styles.css";
 import { socket } from "../socket/socket";
 import { BACKEND_URL } from "../assets/config";
+import { useRequireGame } from "../services/useRequireGame";
 
 function buildMemeUrl(memeId: string, topText: string, bottomText = "") {
   const encode = (text: string) =>
@@ -14,6 +15,7 @@ export default function GameView() {
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
+  useRequireGame();
 
   const [imgUrl, setImgUrl] = useState<string>("");
   const [inputText, setInputText] = useState("");

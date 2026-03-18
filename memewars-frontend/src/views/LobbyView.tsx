@@ -32,6 +32,8 @@ export default function LobbyView() {
       return;
     }
 
+    socket.emit("getLobbyState");
+
     socket.on("lobbyUpdate", (lobby: LobbyState) => {
       setPlayers(lobby.players);
       setHost(lobby.host);
