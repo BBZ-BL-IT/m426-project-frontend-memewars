@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../styles/MemesRangliste.css";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useRequireGame } from "../services/useRequireGame";
 
 interface MemeEntry {
   id: string;
@@ -23,7 +22,6 @@ export default function MemesLeaderboard() {
   const [memes, setMemes] = useState<MemeEntry[]>([]);
   const [players, setPlayers] = useState<PlayerEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  useRequireGame();
 
   useEffect(() => {
     // Daten aus sessionStorage — wurden von MemeRating gespeichert

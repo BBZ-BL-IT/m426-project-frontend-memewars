@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/MemeRating.css';
 import { socket } from '../socket/socket';
-import { useRequireGame } from '../services/useRequireGame';
 
 interface CurrentMeme {
   id: string;
@@ -20,7 +19,6 @@ export default function MemeRating() {
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [waiting, setWaiting] = useState(false);
-  useRequireGame();
 
   useEffect(() => {
     const stored = sessionStorage.getItem("firstMeme");
