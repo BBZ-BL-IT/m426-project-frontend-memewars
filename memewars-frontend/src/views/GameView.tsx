@@ -41,17 +41,18 @@ export default function GameView() {
     updated[index] = value;
     setTextInputs(updated);
 
-    // Für leere Felder einen Platzhalter setzen (z.B. "_" oder "Text 2")
-    const textForUrl = updated.map((t, i) =>
-      t.trim() === "" ? `Text+${i + 1}` : t
+    const textForUrl = updated.map((t) =>
+      t.trim() === "" ? "_" : t
     );
 
     if (!memeId) return;
 
     try {
-      const textPath = textForUrl.map(t => encodeURIComponent(t)).join("/");
+      
+      const combinedText = textForUrl.join("~");
+
       const response = await fetch(
-        `http://localhost:8080/memes/custom_text/${memeId}/${textPath}`
+        `http://localhost:8080/memes/custom_text/${memeId}/${encodeURIComponent(combinedText)}`
       );
       if (response.ok) {
         const data = await response.json();

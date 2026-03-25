@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-export const socket = io("http://10.142.166.167:8080", {
+export const socket = io("http://10.142.167.13:8080", {
   autoConnect: true,
 });
 
