@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
+import { BACKEND_URL } from "../assets/config";
 
-export const socket = io("http://10.142.167.13:8080", {
+export const socket = io(BACKEND_URL, {
   autoConnect: true,
 });
 

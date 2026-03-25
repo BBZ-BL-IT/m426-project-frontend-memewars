@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { socket } from "../socket/socket";
+import { BACKEND_URL } from "../assets/config";
 
 function SocketView() {
   const [message, setMessage] = useState("");
@@ -16,7 +17,7 @@ function SocketView() {
   }, []);
 
   useEffect(() => {
-    fetch("http://10.142.166.30:8080/") // URL zum Backend
+    fetch(BACKEND_URL) // URL zum Backend
       .then((res) => res.text()) // oder res.json() falls JSON
       .then((data) => setMessage(data))
       .catch((err) => console.error(err));
