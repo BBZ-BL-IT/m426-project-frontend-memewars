@@ -1,1 +1,1 @@
-export const BACKEND_URL = "https://memewars-backend.onrender.com/"
+export const BACKEND_URL = "https://memewars-backend.onrender.com"
