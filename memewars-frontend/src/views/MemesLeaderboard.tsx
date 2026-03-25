@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "../styles/MemesRangliste.css";
 import { Navigate, useNavigate } from "react-router-dom";
+import { socket } from "../socket/socket";
 
 interface MemeEntry {
   id: string;
@@ -158,11 +159,14 @@ export default function MemesLeaderboard() {
 
         <button
           className="home-btn"
-          onClick={() => navigate("/")}
+          onClick={() => {
+            socket.emit("leaveLobby");
+            navigate("/");
+          }}
           style={{ padding: "5px 15px", fontSize: "0.9rem" }}
         >
           Zurück zum Start
-        </button>
+      </button>
       </div>
     </div>
   );

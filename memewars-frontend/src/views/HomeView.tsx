@@ -69,13 +69,13 @@ export default function HomeView() {
         <div className="home-center">
           <h1 className="home-title">Welcome to Memewars</h1>
 
-          {/* Spielername: Immer sichtbar */}
           <input
             className="home-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name..."
-            disabled={isCreating} // Sperren, während man den Lobby-Namen wählt
+            disabled={isCreating}
+            maxLength={10} 
           />
 
           {/* Lobby-Name: Nur sichtbar nach Klick auf "Create Lobby" */}
