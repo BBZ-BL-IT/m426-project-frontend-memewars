@@ -17,8 +17,10 @@ export default function GameView() {
   navigateRef.current = navigate;
   useRequireGame();
 
-  const [imgUrl, setImgUrl] = useState<string>("");
-  const [inputText, setInputText] = useState("");
+  const [imgUrl, setImgUrl] = useState<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme");
+  const [memeId, setMemeId] = useState<string>("");
+  const [textInputs, setTextInputs] = useState<string[]>([""]);
+  const [lines, setLines] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedPlayers, setSubmittedPlayers] = useState<string[]>([]);
@@ -28,6 +30,7 @@ export default function GameView() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const memeIdRef = useRef<string>("");
   const inputTextRef = useRef<string>("");
+  const imgUrlRef = useRef<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme");
   const isSubmittedRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
@@ -39,9 +42,8 @@ export default function GameView() {
       setTotalPlayers(total);
     });
 
-    // FIX: erstes Meme in sessionStorage speichern damit MemeRating es beim Mount lesen kann
     socket.on("currentMeme", (meme) => {
-      console.log("GameView currentMeme empfangen:", meme); // kommt das an?
+      console.log("GameView currentMeme empfangen:", meme);
       sessionStorage.setItem("firstMeme", JSON.stringify(meme));
       setTimeout(() => navigateRef.current("/rating"), 0);
     });
@@ -56,9 +58,10 @@ export default function GameView() {
               topText,
               bottomText: "",
               memeId: memeIdRef.current,
-              memeUrl: buildMemeUrl(memeIdRef.current, topText),
+              memeUrl: imgUrlRef.current,
             });
             isSubmittedRef.current = true;
+            setIsSubmitted(true);
           }
           return 0;
         }
@@ -82,11 +85,20 @@ export default function GameView() {
       const allData = await resAll.json();
       const randomIdx = Math.floor(Math.random() * allData.length);
       const id = allData[randomIdx].id;
+      
       memeIdRef.current = id;
+      setMemeId(id);
+
       const resMeme = await fetch(`${BACKEND_URL}/memes/random/${id}`);
       const memeData = await resMeme.json();
-      setImgUrl(memeData.image.blank);
-      setInputText("");
+      
+      const memeLines = memeData.lines ?? 1;
+      setLines(memeLines);
+      setTextInputs(Array(memeLines).fill(""));
+      
+      const blankImg = memeData.image.blank;
+      setImgUrl(blankImg);
+      imgUrlRef.current = blankImg;
       inputTextRef.current = "";
     } catch (err) {
       console.error("Fehler beim Laden:", err);
@@ -102,22 +114,26 @@ export default function GameView() {
     await fetchInitialMeme();
   }
 
-  async function handleTextChange(text: string) {
-    setInputText(text);
-    inputTextRef.current = text;
-    if (text.trim() === "" || !memeIdRef.current) {
-      const resMeme = await fetch(`${BACKEND_URL}/memes/random/${memeIdRef.current}`);
-      const memeData = await resMeme.json();
-      setImgUrl(memeData.image.blank);
-      return;
-    }
+  async function handleTextChange(index: number, value: string) {
+    const updated = [...textInputs];
+    updated[index] = value;
+    setTextInputs(updated);
+
+    const textForUrl = updated.map((t) => (t.trim() === "" ? "_" : t));
+    const combinedText = textForUrl.join("~");
+    
+    inputTextRef.current = combinedText;
+
+    if (!memeIdRef.current) return;
+
     try {
       const response = await fetch(
-        `${BACKEND_URL}/memes/custom_text/${memeIdRef.current}/${encodeURIComponent(text)}`
+        `${BACKEND_URL}/memes/custom_text/${memeIdRef.current}/${encodeURIComponent(combinedText)}`
       );
       if (response.ok) {
         const data = await response.json();
         setImgUrl(data.url);
+        imgUrlRef.current = data.url;
       }
     } catch (error) {
       console.error("Fehler beim Text-Update:", error);
@@ -125,11 +141,14 @@ export default function GameView() {
   }
 
   function handleSubmit() {
-    if (!inputText.trim() || isSubmitted) return;
-    const topText = inputText.trim();
-    const memeUrl = buildMemeUrl(memeIdRef.current, topText);
-    console.log("Submitting:", { memeId: memeIdRef.current, topText, memeUrl });
-    socket.emit("submitCaption", { topText, bottomText: "", memeId: memeIdRef.current, memeUrl });
+    const isAllEmpty = textInputs.every((t) => t.trim() === "");
+    if (isAllEmpty || isSubmitted) return;
+
+    const combinedText = textInputs.map((t) => (t.trim() === "" ? "_" : t)).join("~");
+    const memeUrl = imgUrlRef.current;
+    
+    console.log("Submitting:", { memeId: memeIdRef.current, topText: combinedText, memeUrl });
+    socket.emit("submitCaption", { topText: combinedText, bottomText: "", memeId: memeIdRef.current, memeUrl });
     setIsSubmitted(true);
     isSubmittedRef.current = true;
   }
@@ -143,6 +162,7 @@ export default function GameView() {
       <div className="bg-glow"></div>
 
       <div className="home-frame" style={{ width: "95vw", height: "90vh", maxWidth: "none", flexDirection: "row", gap: "40px", padding: "40px" }}>
+        
         <div className="home-center" style={{ flex: 2, height: "100%", display: "flex", flexDirection: "column" }}>
           <h2 className="home-title" style={{ fontSize: "2rem", marginBottom: "20px" }}>Create your Meme</h2>
           <div className="meme-container" style={{ background: "rgba(0,0,0,0.3)", padding: "20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", width: "100%", flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -155,6 +175,7 @@ export default function GameView() {
 
         <div className="home-center" style={{ flex: 1, justifyContent: "center", padding: "20px" }}>
           <div style={{ width: "100%", background: "rgba(0,0,0,0.4)", padding: "30px", borderRadius: "15px", border: "1px solid rgba(255,255,255,0.1)" }}>
+            
             <div style={{ marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem" }}>Zeit verbleibend</span>
@@ -165,10 +186,30 @@ export default function GameView() {
               </div>
             </div>
 
-            <label style={{ color: "white", marginBottom: "15px", opacity: 0.9, fontSize: "1.2rem", display: "block", fontWeight: "bold" }}>Your Caption:</label>
-            <input className="home-input" value={inputText} onChange={(e) => handleTextChange(e.target.value)} placeholder="Type something funny..." autoFocus disabled={isSubmitted} style={{ width: "100%", fontSize: "1.2rem", padding: "15px" }} />
+            <div style={{ maxHeight: "40vh", overflowY: "auto", paddingRight: "10px", marginBottom: "15px" }}>
+              {textInputs.map((value, index) => (
+                <div key={index} style={{ marginBottom: "15px" }}>
+                  <label style={{ color: "white", marginBottom: "8px", opacity: 0.9, fontSize: "1rem", display: "block", fontWeight: "bold" }}>
+                    Caption {index + 1}:
+                  </label>
+                  <input
+                    className="home-input"
+                    value={value}
+                    onChange={(e) => handleTextChange(index, e.target.value)}
+                    placeholder={`Text ${index + 1}...`}
+                    autoFocus={index === 0}
+                    disabled={isSubmitted}
+                    style={{ width: "100%", fontSize: "1.1rem", padding: "12px" }}
+                  />
+                </div>
+              ))}
+            </div>
 
-            <button onClick={handleSubmit} disabled={!inputText.trim() || isSubmitted} style={{ marginTop: "20px", width: "100%", padding: "16px", fontSize: "1.1rem", fontWeight: "bold", letterSpacing: "0.06em", border: "none", borderRadius: "12px", cursor: isSubmitted || !inputText.trim() ? "not-allowed" : "pointer", background: isSubmitted ? "rgba(0,200,100,0.2)" : "linear-gradient(135deg, #7eb8f7 0%, #a78bfa 100%)", color: isSubmitted ? "#7af798" : "#0a0a0a", boxShadow: isSubmitted ? "none" : "0 0 24px rgba(126,184,247,0.4), 0 4px 15px rgba(0,0,0,0.3)", transition: "all 0.2s ease" }}>
+            <button 
+              onClick={handleSubmit} 
+              disabled={isSubmitted || textInputs.every((t) => t.trim() === "")} 
+              style={{ marginTop: "10px", width: "100%", padding: "16px", fontSize: "1.1rem", fontWeight: "bold", letterSpacing: "0.06em", border: "none", borderRadius: "12px", cursor: isSubmitted || textInputs.every((t) => t.trim() === "") ? "not-allowed" : "pointer", background: isSubmitted ? "rgba(0,200,100,0.2)" : "linear-gradient(135deg, #7eb8f7 0%, #a78bfa 100%)", color: isSubmitted ? "#7af798" : "#0a0a0a", boxShadow: isSubmitted ? "none" : "0 0 24px rgba(126,184,247,0.4), 0 4px 15px rgba(0,0,0,0.3)", transition: "all 0.2s ease" }}
+            >
               {isSubmitted ? "✓  Abgegeben!" : "🔥  Submit Meme"}
             </button>
 
@@ -182,6 +223,7 @@ export default function GameView() {
                 </div>
               </div>
             )}
+            
           </div>
         </div>
       </div>
