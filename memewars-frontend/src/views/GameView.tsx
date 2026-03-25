@@ -29,7 +29,7 @@ export default function GameView() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const memeIdRef = useRef<string>("");
-  const inputTextRef = useRef<string>(""); 
+  const inputTextRef = useRef<string>("");
   const imgUrlRef = useRef<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme");
   const isSubmittedRef = useRef(false);
   const hasFetchedRef = useRef(false);
@@ -53,13 +53,12 @@ export default function GameView() {
         if (prev <= 1) {
           clearInterval(timerRef.current!);
           if (!isSubmittedRef.current) {
-           
             const topText = inputTextRef.current.trim() || "...";
             socket.emit("submitCaption", {
               topText,
               bottomText: "",
               memeId: memeIdRef.current,
-              memeUrl: imgUrlRef.current, 
+              memeUrl: imgUrlRef.current,
             });
             isSubmittedRef.current = true;
             setIsSubmitted(true);
@@ -88,7 +87,7 @@ export default function GameView() {
       const id = allData[randomIdx].id;
       
       memeIdRef.current = id;
-      setMemeId(id); 
+      setMemeId(id);
 
       const resMeme = await fetch(`${BACKEND_URL}/memes/random/${id}`);
       const memeData = await resMeme.json();
@@ -134,7 +133,7 @@ export default function GameView() {
       if (response.ok) {
         const data = await response.json();
         setImgUrl(data.url);
-        imgUrlRef.current = data.url; 
+        imgUrlRef.current = data.url;
       }
     } catch (error) {
       console.error("Fehler beim Text-Update:", error);
@@ -164,7 +163,6 @@ export default function GameView() {
 
       <div className="home-frame" style={{ width: "95vw", height: "90vh", maxWidth: "none", flexDirection: "row", gap: "40px", padding: "40px" }}>
         
-        {}
         <div className="home-center" style={{ flex: 2, height: "100%", display: "flex", flexDirection: "column" }}>
           <h2 className="home-title" style={{ fontSize: "2rem", marginBottom: "20px" }}>Create your Meme</h2>
           <div className="meme-container" style={{ background: "rgba(0,0,0,0.3)", padding: "20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", width: "100%", flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -175,11 +173,9 @@ export default function GameView() {
           </button>
         </div>
 
-        {}
         <div className="home-center" style={{ flex: 1, justifyContent: "center", padding: "20px" }}>
           <div style={{ width: "100%", background: "rgba(0,0,0,0.4)", padding: "30px", borderRadius: "15px", border: "1px solid rgba(255,255,255,0.1)" }}>
             
-            {}
             <div style={{ marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem" }}>Zeit verbleibend</span>
@@ -190,7 +186,6 @@ export default function GameView() {
               </div>
             </div>
 
-            {}
             <div style={{ maxHeight: "40vh", overflowY: "auto", paddingRight: "10px", marginBottom: "15px" }}>
               {textInputs.map((value, index) => (
                 <div key={index} style={{ marginBottom: "15px" }}>
@@ -210,7 +205,6 @@ export default function GameView() {
               ))}
             </div>
 
-            {}
             <button 
               onClick={handleSubmit} 
               disabled={isSubmitted || textInputs.every((t) => t.trim() === "")} 
@@ -219,7 +213,6 @@ export default function GameView() {
               {isSubmitted ? "✓  Abgegeben!" : "🔥  Submit Meme"}
             </button>
 
-            {}
             {totalPlayers > 0 && (
               <div style={{ marginTop: "24px" }}>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", marginBottom: "10px" }}>{submittedPlayers.length} / {totalPlayers} abgegeben</p>
