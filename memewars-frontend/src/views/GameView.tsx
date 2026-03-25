@@ -5,7 +5,6 @@ import { socket } from "../socket/socket";
 import { BACKEND_URL } from "../assets/config";
 import { useRequireGame } from "../services/useRequireGame";
 
-// (Diese Funktion lassen wir drin, falls sie anderswo gebraucht wird)
 function buildMemeUrl(memeId: string, topText: string, bottomText = "") {
   const encode = (text: string) =>
     text.trim().replace(/-/g, "--").replace(/_/g, "__").replace(/ /g, "_") || "_";
@@ -18,7 +17,6 @@ export default function GameView() {
   navigateRef.current = navigate;
   useRequireGame();
 
-  // --- STATES ---
   const [imgUrl, setImgUrl] = useState<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme");
   const [memeId, setMemeId] = useState<string>("");
   const [textInputs, setTextInputs] = useState<string[]>([""]);
@@ -29,11 +27,10 @@ export default function GameView() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [timeLeft, setTimeLeft] = useState(45);
 
-  // --- REFS ---
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const memeIdRef = useRef<string>("");
-  const inputTextRef = useRef<string>(""); // Speichert den mit "~" verbundenen Text für den Timer
-  const imgUrlRef = useRef<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme"); // Wichtig für Auto-Submit!
+  const inputTextRef = useRef<string>(""); 
+  const imgUrlRef = useRef<string>("https://via.placeholder.com/800x600?text=Wait+for+Meme");
   const isSubmittedRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
@@ -56,13 +53,13 @@ export default function GameView() {
         if (prev <= 1) {
           clearInterval(timerRef.current!);
           if (!isSubmittedRef.current) {
-            // Auto-Submit, wenn die Zeit abläuft
+           
             const topText = inputTextRef.current.trim() || "...";
             socket.emit("submitCaption", {
               topText,
               bottomText: "",
               memeId: memeIdRef.current,
-              memeUrl: imgUrlRef.current, // Hier senden wir das perfekte generierte Bild!
+              memeUrl: imgUrlRef.current, 
             });
             isSubmittedRef.current = true;
             setIsSubmitted(true);
@@ -91,7 +88,7 @@ export default function GameView() {
       const id = allData[randomIdx].id;
       
       memeIdRef.current = id;
-      setMemeId(id); // State und Ref synchronisieren
+      setMemeId(id); 
 
       const resMeme = await fetch(`${BACKEND_URL}/memes/random/${id}`);
       const memeData = await resMeme.json();
@@ -126,7 +123,6 @@ export default function GameView() {
     const textForUrl = updated.map((t) => (t.trim() === "" ? "_" : t));
     const combinedText = textForUrl.join("~");
     
-    // In die Ref schreiben, damit der Timer den Text kennt
     inputTextRef.current = combinedText;
 
     if (!memeIdRef.current) return;
@@ -138,7 +134,7 @@ export default function GameView() {
       if (response.ok) {
         const data = await response.json();
         setImgUrl(data.url);
-        imgUrlRef.current = data.url; // Ref updaten für den Auto-Submit!
+        imgUrlRef.current = data.url; 
       }
     } catch (error) {
       console.error("Fehler beim Text-Update:", error);
@@ -146,12 +142,11 @@ export default function GameView() {
   }
 
   function handleSubmit() {
-    // Prüfen ob wirklich alle Felder leer sind
     const isAllEmpty = textInputs.every((t) => t.trim() === "");
     if (isAllEmpty || isSubmitted) return;
 
     const combinedText = textInputs.map((t) => (t.trim() === "" ? "_" : t)).join("~");
-    const memeUrl = imgUrlRef.current; // Das echte generierte Backend-Bild
+    const memeUrl = imgUrlRef.current;
     
     console.log("Submitting:", { memeId: memeIdRef.current, topText: combinedText, memeUrl });
     socket.emit("submitCaption", { topText: combinedText, bottomText: "", memeId: memeIdRef.current, memeUrl });
@@ -169,7 +164,7 @@ export default function GameView() {
 
       <div className="home-frame" style={{ width: "95vw", height: "90vh", maxWidth: "none", flexDirection: "row", gap: "40px", padding: "40px" }}>
         
-        {/* Linke Seite: Meme-Bild */}
+        {}
         <div className="home-center" style={{ flex: 2, height: "100%", display: "flex", flexDirection: "column" }}>
           <h2 className="home-title" style={{ fontSize: "2rem", marginBottom: "20px" }}>Create your Meme</h2>
           <div className="meme-container" style={{ background: "rgba(0,0,0,0.3)", padding: "20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", width: "100%", flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -180,11 +175,11 @@ export default function GameView() {
           </button>
         </div>
 
-        {/* Rechte Seite: Dynamische Inputs & Timer */}
+        {}
         <div className="home-center" style={{ flex: 1, justifyContent: "center", padding: "20px" }}>
           <div style={{ width: "100%", background: "rgba(0,0,0,0.4)", padding: "30px", borderRadius: "15px", border: "1px solid rgba(255,255,255,0.1)" }}>
             
-            {/* Timer UI aus dem Main-Branch */}
+            {}
             <div style={{ marginBottom: "24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.85rem" }}>Zeit verbleibend</span>
@@ -195,7 +190,7 @@ export default function GameView() {
               </div>
             </div>
 
-            {/* Dynamische Inputs aus dem Hotfix-Branch */}
+            {}
             <div style={{ maxHeight: "40vh", overflowY: "auto", paddingRight: "10px", marginBottom: "15px" }}>
               {textInputs.map((value, index) => (
                 <div key={index} style={{ marginBottom: "15px" }}>
@@ -215,7 +210,7 @@ export default function GameView() {
               ))}
             </div>
 
-            {/* Submit Button aus dem Main-Branch */}
+            {}
             <button 
               onClick={handleSubmit} 
               disabled={isSubmitted || textInputs.every((t) => t.trim() === "")} 
@@ -224,7 +219,7 @@ export default function GameView() {
               {isSubmitted ? "✓  Abgegeben!" : "🔥  Submit Meme"}
             </button>
 
-            {/* Submitted Players aus dem Main-Branch */}
+            {}
             {totalPlayers > 0 && (
               <div style={{ marginTop: "24px" }}>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", marginBottom: "10px" }}>{submittedPlayers.length} / {totalPlayers} abgegeben</p>
