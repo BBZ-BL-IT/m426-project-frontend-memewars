@@ -33,7 +33,12 @@ export default function HomeView() {
     };
   }, []);
 
-  // Zweistufiger Erstellungsprozess
+  /**
+   * Zweistufiger Lobby-Erstellungsprozess
+   * 
+   * Schritt 1: isCreating=false → Klick zeigt Lobby-Namen-Input
+   * Schritt 2: isCreating=true → Klick erstellt Lobby und navigiert zu LobbyView
+   */
   function handleCreateAction() {
     if (!canContinue) return;
 
@@ -41,7 +46,7 @@ export default function HomeView() {
       // Schritt 1: Eingabefeld für Lobby-Namen einblenden
       setIsCreating(true);
     } else {
-      // Schritt 2: Lobby final erstellen
+      // Schritt 2: Lobby final erstellen und zum Wartebereich navigieren
       localStorage.setItem("playerName", trimmedName);
 
       socket.emit("createLobby", {

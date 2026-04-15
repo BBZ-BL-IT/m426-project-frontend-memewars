@@ -22,7 +22,10 @@ export default function LobbyView() {
   const [pulse, setPulse] = useState(false);
   const navigate = useNavigate();
 
-  // FIX: navigate in ref damit es im setInterval immer aktuell ist
+  // ⚠️ WICHTIG: navigate in Ref speichern
+  // Grund: setInterval bildet Closure über alte navigate-Referenz
+  // Ohne Ref würde navigate im Interval veraltete Werte haben
+  // Lösung: navigateRef.current nutzen um immer aktuelle Funktion zu haben
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
 
@@ -48,7 +51,10 @@ export default function LobbyView() {
             return prev - 1;
           } else {
             clearInterval(interval);
-            // FIX: navigate via ref, nicht direkt — verhindert BrowserRouter-Fehler
+            // ⚠️ WICHTIG: navigate via Ref statt direkt
+            // Grund: Verhindert Closure-Problem im setInterval
+            // BrowserRouter erwartet navigate innerhalb Event-Handler
+            // setTimeout() mit 0ms ermöglicht asynchronen Navigation-Trigger
             setTimeout(() => navigateRef.current("/game"), 0);
             return null;
           }

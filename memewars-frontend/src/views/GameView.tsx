@@ -4,6 +4,18 @@ import "../styles/Styles.css";
 import { socket } from "../socket/socket";
 import { BACKEND_URL } from "../assets/config";
 
+/**
+ * Meme URL Builder für memegen.link API
+ * 
+ * Encodes Text mit speziellen Regeln der memegen.link API:
+ * - -- (doppelter Bindestrich) wird zu einzelnem -
+ * - __ (doppelter Unterstrich) wird zu einzelnem _
+ * - Leerzeichen werden zu _
+ * - Leere Texte werden zu _ (damit URL gültig bleibt)
+ * 
+ * Beispiel: buildMemeUrl("drake", "When deadline closes", "Work not done")
+ * → https://api.memegen.link/images/drake/When_deadline_closes/Work_not_done.png
+ */
 function buildMemeUrl(memeId: string, topText: string, bottomText = "") {
   const encode = (text: string) =>
     text.trim().replace(/-/g, "--").replace(/_/g, "__").replace(/ /g, "_") || "_";
@@ -25,6 +37,17 @@ export default function GameView() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [timeLeft, setTimeLeft] = useState(45);
 
+  /**
+   * Refs statt State für Performance-kritische Daten:
+   * Refs triggern kein Re-Render beim Update (wichtig für Timer!)
+   * 
+   * - timerRef: setInterval speichern zum Cleanup beim Unmount
+   * - memeIdRef: Aktuelle Meme-ID (für Auto-Submit bei Timeout)
+   * - inputTextRef: Letzter Text (für Auto-Submit wenn User inaktiv)
+   * - imgUrlRef: Aktuelle Meme-Bild-URL (für Submission)
+   * - isSubmittedRef: Markiert ob bereits eingereicht (verhindert Doppel-Submit)
+   * - hasFetchedRef: Verhindert mehrfaches Laden des Initial-Memes
+   */
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const memeIdRef = useRef<string>("");
   const inputTextRef = useRef<string>("");
@@ -46,6 +69,16 @@ export default function GameView() {
       setTimeout(() => navigateRef.current("/rating"), 0);
     });
 
+  /**
+   * Timer-Logik (45 Sekunden)
+   * 
+   * Auto-Submit Trigger:
+   * - Wenn Zeit abläuft und noch NICHT eingereicht → automatisch submitCaption emittieren
+   * - Input wird mit ~ als Trennzeichen zwischen mehreren Textzeilen formatiert
+   * - Leere Inputs werden zu "_" konvertiert (memegen.link API-Anforderung)
+   * 
+   * Nach Submit: Navigiert zu /rating (wird von "currentMeme" Socket-Event ausgelöst)
+   */
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -74,6 +107,15 @@ export default function GameView() {
     };
   }, []);
 
+  /**
+   * Lädt den initialen Meme mit allen Metadaten
+   * 
+   * 1. Ruft /memes/all ab und wählt zufällig einen Meme-Template
+   * 2. Lädt Meme-Konfiguration (Anzahl Textzeilen, Blank-Image)
+   * 3. Setzt Anzahl der Textinputs basierend auf Meme-Zeilen
+   * 
+   * hasFetchedRef verhindert doppeltes Laden nach Re-Renders
+   */
   async function fetchInitialMeme() {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
@@ -112,11 +154,25 @@ export default function GameView() {
     await fetchInitialMeme();
   }
 
+  /**
+   * Echtzeit-Vorschau beim Tippen
+   * 
+   * Für jeden Textländerung:
+   * 1. Lokales State (textInputs) updaten
+   * 2. Text mit ~ trennen (für mehrspaltiges Meme)
+   * 3. Leere Felder zu "_" konvertieren
+   * 4. Backend-API aufrufen um Live-Vorschau zu generieren
+   * 5. Bild-URL updaten
+   * 
+   * inputTextRef wird mit kombiniertem Text aktualisiert für Auto-Submit
+   */
   async function handleTextChange(index: number, value: string) {
     const updated = [...textInputs];
     updated[index] = value;
     setTextInputs(updated);
 
+    // Mehrere Captions mit ~ als Trennzeichen kombinieren
+    // Leere Inputs zu "_" konvertieren um memegen.link API zu erfüllen
     const textForUrl = updated.map((t) => (t.trim() === "" ? "_" : t));
     const combinedText = textForUrl.join("~");
     

@@ -21,6 +21,19 @@ export default function MemeRating() {
   const [waiting, setWaiting] = useState(false);
 
   useEffect(() => {
+  /**
+   * Meme-Quelle: Zwei verschiedene Strategien
+   * 
+   * FirstMeme (von GameView):
+   * - Wird in sessionStorage von GameView.tsx gespeichert
+   * - Sofortiges Laden ohne Netzwerk-Latenz
+   * - Schnellerer Transition vom Game zum Rating
+   * 
+   * Weitere Memes (von Backend via Socket):
+   * - Backend sendet nacheinander neue Memes
+   * - Socket-Event "currentMeme" emittiert
+   * - FirstMeme wird nur beim Mount geladen (wenn noch keine neuen Memes vom Socket kamen)
+   */
     const stored = sessionStorage.getItem("firstMeme");
     console.log("MemeRating mount, firstMeme:", stored); 
     if (stored) {
@@ -77,7 +90,9 @@ export default function MemeRating() {
     socket.emit('submitRating', { memeId: currentMeme.id, rating });
   };
 
-  const ratingLabel = () => {
+    // Rating-Label basierend auf Punkt-Score
+    // Wird im Slider-Bereich angezeigt um User Feedback zu geben
+    const ratingLabel = () => {
     if (rating <= 2) return { text: 'TRASH', color: '#ef4444' };
     if (rating <= 4) return { text: 'MEH', color: '#f97316' };
     if (rating <= 6) return { text: 'OK', color: '#eab308' };

@@ -8,6 +8,20 @@ import GameView from './views/GameView';
 import MemeRating from './views/MemeRating';
 import MemesLeaderboard from './views/MemesLeaderboard';
 
+/**
+ * MemeWars Spiel-Navigation
+ * 
+ * Ablauf:
+ * 1. / = HomeView: Spieler wählt Name, erstellt oder tritt Lobby bei
+ * 2. /lobby = LobbyView: Wartebereich, alle Spieler müssen "Bereit" sein
+ * 3. /game = GameView: 45 Sekunden Zeit zum Caption schreiben
+ * 4. /rating = MemeRating: Je Meme 15 Sekunden zum Bewerten (1-10)
+ * 5. /leaderboard = MemesLeaderboard: Endergebnis zeigen
+ * 
+ * Debug-Routes:
+ * - /reactplate: Vite + React Template (kann gelöscht werden)
+ * - /socket: Socket-Verbindungs-Test
+ */
 
 function App() {
 

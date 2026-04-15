@@ -25,6 +25,17 @@ export default function MemesLeaderboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+  /**
+   * Daten von MemeRating.tsx via sessionStorage
+   * 
+   * Workflow:
+   * 1. MemeRating speichert "ranglisteData" nach letztem Meme
+   * 2. Socket-Event "ranglisteData" triggert Navigation zu /leaderboard
+   * 3. MemesLeaderboard lädt Daten aus sessionStorage
+   * 4. Memes und Spieler werden nach Rating/Score sortiert
+   * 
+   * Das Leaderboard ist die End-Screen nach dem Spiel
+   */
     // Daten aus sessionStorage — wurden von MemeRating gespeichert
     const stored = sessionStorage.getItem("ranglisteData");
     if (stored) {
