@@ -1,7 +1,7 @@
 import './styles/index.css'
 import { Routes, Route } from "react-router-dom";
 import HomeView from "./views/HomeView";
-import ReactPlate from "./views/Reactplate";
+import ReactPlate from "./views/ReactPlate";
 import SocketView from "./views/SocketView";
 import LobbyView from './views/LobbyView';
 import GameView from './views/GameView'; 
